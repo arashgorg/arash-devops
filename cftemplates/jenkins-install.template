@@ -1,0 +1,165 @@
+{
+    "Description": "Jenkins-based stack template.",
+    "Outputs": {
+        "JenkinsHostname": {
+            "Description": "DNS Name of the newly created EC2 instance",
+            "Value": {
+                "Fn::GetAtt": [
+                    "JenkinsEC2",
+                    "PublicDnsName"
+                ]
+            }
+        }
+    },
+    "Parameters": {
+        "ImageId": {
+            "Default": "ami-a7596e97",
+            "Description": "AMI ID",
+            "Type": "String"
+        },
+        "JenkinsVolumeSize": {
+            "ConstraintDescription": "must be between 1 GB and 1024 GB.",
+            "Default": "1",
+            "Description": "Storage volume size in GB for the AWS EBS volume of the Jenkins instance.",
+            "MaxValue": "1024",
+            "MinValue": "1",
+            "Type": "Number"
+        }
+    },
+    "Resources": {
+        "JenkinsEC2": {
+            "Metadata": {
+                "AWS::CloudFormation::Init": {
+                    "ConfigDisk": {
+                        "commands": {
+                            "01formatFS": {
+                                "command": "/sbin/mkfs.ext4 /dev/xvdf"
+                            },
+                            "02mountFS": {
+                                "command": "/bin/mount /dev/xvdf /var/lib/jenkins"
+                            },
+                            "03changePerms": {
+                                "command": "/bin/chown jenkins:jenkins /var/lib/jenkins"
+                            },
+                            "04updateFStab": {
+                                "command": "/bin/echo /dev/xvdf /var/lib/jenkins ext4 defaults 1 1 >> /etc/fstab"
+                            }
+                        }
+                    },
+                    "InstallSoftware": {
+                        "packages": {
+                            "rpm": {
+                                "jenkins": "http://pkg.jenkins-ci.org/redhat/jenkins-1.525-1.1.noarch.rpm"
+                            }
+                        }
+                    },
+                    "StartSoftware": {
+                        "services": {
+                            "sysvinit": {
+                                "jenkins": {
+                                    "enabled": "true",
+                                    "ensureRunning": "true"
+                                }
+                            }
+                        }
+                    },
+                    "configSets": {
+                        "default": [
+                            "InstallSoftware",
+                            "ConfigDisk",
+                            "StartSoftware"
+                        ]
+                    }
+                }
+            },
+            "Properties": {
+                "BlockDeviceMappings": [
+                    {
+                        "DeviceName": "/dev/sdf",
+                        "Ebs": {
+                            "DeleteOnTermination": "true",
+                            "VolumeSize": {
+                                "Ref": "JenkinsVolumeSize"
+                            },
+                            "VolumeType": "standard"
+                        }
+                    }
+                ],
+                "ImageId": {
+                    "Ref": "ImageId"
+                },
+                "InstanceType" : "t1.micro",
+                "KeyName": "admin@agorg",
+                "SecurityGroupIds": [
+                    {
+                        "Ref": "JenkinsSecurityGroup"
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Join": [
+                                " - ",
+                                [
+                                    {
+                                        "Ref": "AWS::StackName"
+                                    },
+                                    "Jenkins instance"
+                                ]
+                            ]
+                        }
+                    },
+			{
+				"Key" : "env",
+				"Value" : "test"
+			},
+			{
+				"Key" : "type",
+				"Value" : "orig"
+			}
+                ],
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "#!/bin/bash\n",
+                                "/opt/aws/bin/cfn-init --region ",
+                                {
+                                    "Ref": "AWS::Region"
+                                },
+                                " -s ",
+                                {
+                                    "Ref": "AWS::StackName"
+                                },
+                                " -r JenkinsEC2\n"
+                            ]
+                        ]
+                    }
+                }
+            },
+            "Type": "AWS::EC2::Instance"
+        },
+        "JenkinsSecurityGroup": {
+            "Properties": {
+                "GroupDescription": "Security Group for the instances",
+                "SecurityGroupIngress": [
+                    {
+                        "CidrIp": "0.0.0.0/0",
+                        "FromPort": "22",
+                        "IpProtocol": "tcp",
+                        "ToPort": "22"
+                    },
+                    {
+                        "CidrIp": "0.0.0.0/0",
+                        "FromPort": "8080",
+                        "IpProtocol": "tcp",
+                        "ToPort": "8080"
+                    }
+                ]
+            },
+            "Type": "AWS::EC2::SecurityGroup"
+        }
+    }
+}
