@@ -20,7 +20,7 @@
 	          		"AMI" : "ami-8e08a38f"
 	      		},
 	      		"us-west-2" : {
-	          		"AMI" : "ami-a7596e97"
+	          		"AMI" : "ami-f1edb0c1"
 	      		}
 	    	}
   	},
@@ -50,37 +50,40 @@
 						"Fn::Join" : ["", [
 				               	"#!/bin/bash\n",
                                 		"sudo su\n",
-                                		"apt-get update\n",
-				               	"apt-get -y install salt-master\n",
-				               	"apt-get -y install salt-minion\n",
-				               	"apt-get -y install salt-ssh\n",
-				               	"apt-get -y install salt-syndic\n",
+                                		
+                                		"wget https://repo.saltstack.com/yum/rhel7/SALTSTACK-GPG-KEY.pub\n",
+                                		"rpm --import SALTSTACK-GPG-KEY.pub\n",
+                                		"rm -f SALTSTACK-GPG-KEY.pub\n",
+                                		
+                                		"echo '####################' >> /etc/yum.repos.d/saltstack.repo\n",
+						"echo '# Enable SaltStack package repository' >> /etc/yum.repos.d/saltstack.repo\n",
+						"echo '[saltstack-repo]' >> /etc/yum.repos.d/saltstack.repo\n",
+						"echo 'name=SaltStack repo for RHEL/CentOS 6' >> /etc/yum.repos.d/saltstack.repo\n",
+						"echo 'baseurl=https://repo.saltstack.com/yum/rhel6' >> /etc/yum.repos.d/saltstack.repo\n",
+						"echo 'enabled=1' >> /etc/yum.repos.d/saltstack.repo\n",
+						"echo 'gpgcheck=1' >> /etc/yum.repos.d/saltstack.repo\n",
+						"echo 'gpgkey=https://repo.saltstack.com/yum/rhel6/SALTSTACK-GPG-KEY.pub' >> /etc/yum.repos.d/saltstack.repo\n",
+                                		
+                                		"yum clean expire-cache\n",
+				               	"yum -y update\n",
+				               	"yum -y install salt-master\n",
+				               	"yum -y install salt-minion\n",
+				               	"yum -y install salt-ssh\n",
+				               	"yum -y install salt-syndic\n",
+				               	"yum -y install salt-cloud\n",
 				               	
 				               	"sed -i 's/#auto_accept: False/auto_accept: True/g' /etc/salt/master\n",
 				               	"sed -i 's/#master: salt/master: 127.0.0.1/g' /etc/salt/minion\n",
 						"sed -i 's/#id:/id: SALT-MASTER/g' /etc/salt/minion\n",
 						
 						"mkdir /srv/{salt,pillar}\n",
-											
-						"echo 'base:' >> /srv/salt/top.sls\n",
-						"echo '  *:' >> /srv/salt/top.sls\n",
-						"echo '    - common' >> /srv/salt/top.sls\n",
-						
-						"echo 'common-pkgs:' >> /srv/salt/common.sls\n",
-						"echo '  pkg.installed:' >> /srv/salt/common.sls\n",
-						"echo '    - names:' >> /srv/salt/common.sls\n",
-						"echo '      - emacs' >> /srv/salt/common.sls\n",
-						"echo '      - openssh-server' >> /srv/salt/common.sls\n",
-						"echo '      - nginx' >> /srv/salt/common.sls\n",
-              					
-				               	"service salt-master stop\n",
-				               	"service salt-minion stop\n",
+            					
 				                "service salt-master start\n",
 				                "service salt-minion start\n"
 						]]
 					}
 				}
-			}
+	    		}
 	    		},
 	    		"InstanceSecurityGroup" : {
       				"Type" : "AWS::EC2::SecurityGroup",

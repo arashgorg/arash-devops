@@ -1,0 +1,2 @@
+saltmaster2.template
+saltminion2.template
