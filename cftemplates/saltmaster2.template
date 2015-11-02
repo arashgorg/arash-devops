@@ -19,8 +19,11 @@
 	      		"ap-northeast-1" : {
 	          		"AMI" : "ami-8e08a38f"
 	      		},
-	      		"us-west-2" : {
+	      		"us-west-4" : {
 	          		"AMI" : "ami-f1edb0c1"
+	      		},
+	      		"us-west-2" : {
+	          		"AMI" : "ami-27cab817"
 	      		}
 	    	}
   	},
@@ -77,7 +80,8 @@
 						"sed -i 's/#id:/id: SALT-MASTER/g' /etc/salt/minion\n",
 						
 						"mkdir /srv/{salt,pillar}\n",
-            					
+        					
+     					
 				                "service salt-master start\n",
 				                "service salt-minion start\n"
 						]]
