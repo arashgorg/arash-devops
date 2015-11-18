@@ -1,0 +1,396 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "ArashLatest VPC",
+  "Parameters": {
+    "CorporateCidr": {
+      "Description": "CIDR Block for the corporation",
+      "Type": "String",
+      "Default": "10.0.0.0/8"
+    },
+    "VPCCidr": {
+      "Description": "CIDR Block for the VPC",
+      "Type": "String",
+      "Default": "10.99.0.0/16"
+    },
+    "SubnetZone1": {
+      "Description": "Availability zone for VPC subnets 1",
+      "Type": "String",
+      "Default": "us-west-2a"
+    },
+    "SubnetZone2": {
+      "Description": "Availability zone for VPC subnets 2",
+      "Type": "String",
+      "Default": "us-west-2b"
+    },
+    "SubnetZone3": {
+      "Description": "Availability zone for VPC subnets 3",
+      "Type": "String",
+      "Default": "us-west-2c"
+    },
+    "SubnetPublicCidr1": {
+      "Description": "CIDR Block for VPC public (DMZ) subnet 1",
+      "Type": "String",
+      "Default": "10.99.1.0/24"
+    },
+    "SubnetTestCidr1": {
+      "Description": "CIDR Block for VPC private (Test) subnet 1",
+      "Type": "String",
+      "Default": "10.99.21.0/24"
+    },
+      "SubnetPublicCidr2": {
+      "Description": "CIDR Block for VPC public (DMZ) subnet 2",
+      "Type": "String",
+      "Default": "10.99.2.0/24"
+    },
+    "SubnetTestCidr2": {
+      "Description": "CIDR Block for VPC private (Test) subnet 2",
+      "Type": "String",
+      "Default": "10.99.22.0/24"
+    },
+    "SubnetPublicCidr3": {
+      "Description": "CIDR Block for VPC public (DMZ) subnet 3",
+      "Type": "String",
+      "Default": "10.99.3.0/24"
+    },
+    "SubnetTestCidr3": {
+      "Description": "CIDR Block for VPC private (Test) subnet 3",
+      "Type": "String",
+      "Default": "10.99.23.0/24"
+    },
+    "PrivateS3Resources": {
+      "Description": "S3 ARN for OpenVPN private resources",
+      "Type": "String",
+      "Default": "arn:aws:s3:::agorg/cf-templates-4cmmx6wny0hn-us-west-2/*"
+    }
+  },
+  "Mappings": {
+    "ImageMap": {
+      "us-east-1": {
+        "amd64": "ami-1a942472"
+      },
+      "us-west-1": {
+        "amd64": "ami-d7cdc692"
+      },
+      "us-west-2": {
+        "amd64": "ami-3bd4960b"
+      }
+    }
+  },
+  "Resources": {
+    "VPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": {
+          "Ref": "VPCCidr"
+        },
+        "EnableDnsSupport": true,
+        "EnableDnsHostnames": true,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "VPC"
+          }
+        ]
+      }
+    },
+    "InternetGateway": {
+      "Type": "AWS::EC2::InternetGateway"
+    },
+    "AttachGateway": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "InternetGatewayId": {
+          "Ref": "InternetGateway"
+        }
+      }
+    },
+    "PublicSubnet1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "CidrBlock": {
+          "Ref": "SubnetPublicCidr1"
+        },
+        "AvailabilityZone": {
+          "Ref": "SubnetZone1"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "PublicSubnet1"
+          }
+        ]
+      }
+    },
+    "PublicSubnet2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "CidrBlock": {
+          "Ref": "SubnetPublicCidr2"
+        },
+        "AvailabilityZone": {
+          "Ref": "SubnetZone2"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "PublicSubnet2"
+          }
+        ]
+      }
+    },
+    "PublicSubnet3": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "CidrBlock": {
+          "Ref": "SubnetPublicCidr3"
+        },
+        "AvailabilityZone": {
+          "Ref": "SubnetZone3"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "PublicSubnet3"
+          }
+        ]
+      }
+    },
+    "PublicRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      }
+    },
+    "PublicRoute": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "InternetGateway"
+        }
+      }
+    },
+    "PublicSubnetRouteTableAssociation1": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        },
+        "SubnetId": {
+          "Ref": "PublicSubnet1"
+        }
+      }
+    },
+    "PublicSubnetRouteTableAssociation2": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        },
+        "SubnetId": {
+          "Ref": "PublicSubnet2"
+        }
+      }
+    },
+    "PublicSubnetRouteTableAssociation3": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        },
+        "SubnetId": {
+          "Ref": "PublicSubnet3"
+        }
+      }
+    },
+    
+    "TestSubnet1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "CidrBlock": {
+          "Ref": "SubnetTestCidr1"
+        },
+        "AvailabilityZone": {
+          "Ref": "SubnetZone1"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "TestSubnet1"
+          }
+        ]
+      }
+    },
+   
+    "TestSubnet2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "CidrBlock": {
+          "Ref": "SubnetTestCidr2"
+        },
+        "AvailabilityZone": {
+          "Ref": "SubnetZone2"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "TestSubnet2"
+          }
+        ]
+      }
+    },
+    
+    "TestSubnet3": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "CidrBlock": {
+          "Ref": "SubnetTestCidr3"
+        },
+        "AvailabilityZone": {
+          "Ref": "SubnetZone3"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "TestSubnet3"
+          }
+        ]
+      }
+    },
+   
+   "PrivateRouteTable1": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      }
+    },
+    "PrivateRouteTable2": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      }
+    },
+    "PrivateRouteTable3": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        }
+      }
+    },
+    
+    "TestSubnetRouteTableAssociation1": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PrivateRouteTable1"
+        },
+        "SubnetId": {
+          "Ref": "TestSubnet1"
+        }
+      }
+    },
+   
+    "TestSubnetRouteTableAssociation2": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PrivateRouteTable2"
+        },
+        "SubnetId": {
+          "Ref": "TestSubnet2"
+        }
+      }
+    },
+    
+    "TestSubnetRouteTableAssociation3": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PrivateRouteTable3"
+        },
+        "SubnetId": {
+          "Ref": "TestSubnet3"
+        }
+      }
+    }
+    
+  },
+  "Outputs": {
+    "VPC": {
+      "Description": "VPC identifier",
+      "Value": {
+        "Ref": "VPC"
+      }
+    },
+    "PublicSubnet1": {
+      "Description": "Public (DMZ) subnet 1 identifier",
+      "Value": {
+        "Ref": "PublicSubnet1"
+      }
+    },
+    "TestSubnet1": {
+      "Description": "Private (Test) subnet 1 identifier",
+      "Value": {
+        "Ref": "TestSubnet1"
+      }
+    },
+    "PublicSubnet2": {
+      "Description": "Public (DMZ) subnet 2 identifier",
+      "Value": {
+        "Ref": "PublicSubnet2"
+      }
+    },
+
+    "TestSubnet2": {
+      "Description": "Private (Test) subnet 2 identifier",
+      "Value": {
+        "Ref": "TestSubnet2"
+      }
+    },
+
+    "PublicSubnet3": {
+      "Description": "Public (DMZ) subnet 3 identifier",
+      "Value": {
+        "Ref": "PublicSubnet3"
+      }
+    },
+
+    "TestSubnet3": {
+      "Description": "Private (Test) subnet 3 identifier",
+      "Value": {
+        "Ref": "TestSubnet3"
+      }
+    }
+  }
+}

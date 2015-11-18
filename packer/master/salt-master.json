@@ -1,0 +1,25 @@
+{
+    "variables": {
+    	"aws_access_key": "AKIAIWMEEJMJI3PPG4KQ",
+       	"aws_secret_key": "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"
+    },
+    "builders": [
+        {
+            "type": "amazon-ebs",
+            "region": "us-west-2",
+            "source_ami": "ami-818eb7b1",
+            "instance_type": "t2.micro",
+            "ssh_username": "admin",
+            "ami_name": "debian-jessie-salt-master {{timestamp}}",
+            "ami_description": "Debian Jessie AMD64 HVM - Salt Master",
+            "tags": { "Name": "debian-jessie-salt-master", "os": "debian" }
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "shell",
+            "execute_command": "{{ .Vars }} sudo -E bash '{{ .Path }}'",
+            "scripts": [ "setup.sh" ]
+        }
+    ]
+}

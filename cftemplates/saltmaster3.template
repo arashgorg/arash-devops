@@ -1,0 +1,200 @@
+{
+  	"AWSTemplateFormatVersion" : "2010-09-09",
+  	"Description" : "Create an EC2 instance running the Amazon Linux 32 bit AMI. The AMI is chosen based on the region in which the stack is run. This example creates an EC2 security group for the instance to give you SSH access. **WARNING** This template creates one or more Amazon EC2 instances. You will be billed for the AWS resources used if you create a stack from this template.",
+
+	"Parameters": {
+		"VPCId": {
+      			"Description": "VPC",
+      			"Type": "String",
+      			"Default": "vpc-7a50701f"
+      		},
+      		"VPCCidr": {
+      			"Description": "CIDR Block for the VPC",
+      			"Type": "String",
+      			"Default": "10.99.0.0/16"
+    		},
+    		"VPCAZ1": {
+      			"Description": "AvailabilityZone where the first front-end instance will be launched",
+      			"Type": "String",
+      			"Default": "us-west-2a"
+    		},
+    		"VPCAZ2": {
+      			"Description": "AvailabilityZone when the second front-end instance will be launched",
+      			"Type": "String",
+      			"Default": "us-west-2b"
+    		},
+    		"PrivateS3Resources": {
+      			"Description": "S3 ARN for private resources",
+      			"Type": "String",
+      			"Default": "arn:aws:s3:::agorg/cf-templates-4cmmx6wny0hn-us-west-2/*"
+   		},
+   		"LogS3Bucket": {
+      			"Description": "S3 ARN for log bucket",
+      			"Type": "String",
+      			"Default": "arn:aws:s3:::agorg"
+    		},
+    		"LogS3Resources": {
+      			"Description": "S3 ARN for log resources",
+      			"Type": "String",
+      			"Default": "arn:aws:s3:::agorg/cf-templates-4cmmx6wny0hn-us-west-2/*"
+    		},
+    		"DefVPCSG": {
+      			"Description": "VPC Default Security Group",
+      			"Type": "String",
+      			"Default": "sg-eb74238f"
+    		}
+    	},
+	
+  	"Mappings" : {
+    		"RegionMap" : {
+      			"us-east-1" : {
+          			"AMI" : "ami-76f0061f"
+	      		},
+	      		"us-west-1" : {
+	          		"AMI" : "ami-655a0a20"
+	      		},
+	      		"eu-west-1" : {
+	          		"AMI" : "ami-7fd4e10b"
+	      		},
+	      		"ap-southeast-1" : {
+	          		"AMI" : "ami-72621c20"
+	      		},
+	      		"ap-northeast-1" : {
+	          		"AMI" : "ami-8e08a38f"
+	      		},
+	      		"us-west-4" : {
+	          		"AMI" : "ami-f1edb0c1"
+	      		},
+	      		"us-west-2" : {
+	          		"AMI" : "ami-fe24359f"
+	      		}
+	    	},
+    		"PublicSubnetMap": {
+      			"us-west-2a": {
+        			"Id": "subnet-be3007db",
+        			"Prefix": "10.99.1"
+      			},
+      			"us-west-2b": {
+        			"Id": "subnet-9d386dea",
+        			"Prefix": "10.99.2"
+      			}
+    		}
+    	},
+
+  	"Resources" : {
+    		"Ec2Instance" : {
+      			"Type" : "AWS::EC2::Instance",
+      			"Properties" : {
+        			"AvailabilityZone" : "us-west-2a",
+        			"InstanceType" : "t2.micro",
+        			"SecurityGroupIds" : [ { "Ref" : "InstanceSecurityGroup" } ],
+        			"SubnetId": {
+          			"Fn::FindInMap": [
+            				"PublicSubnetMap",
+    					{
+      						"Ref": "VPCAZ1"
+    					},
+    					"Id"
+          				]
+        			},
+        			"KeyName" : "admin@agorg",
+        			"ImageId" : { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "AMI" ]},
+				"Tags" : [ {
+					"Key" : "env",
+					"Value" : "test"
+				},
+				{
+					"Key" : "type",
+					"Value" : "orig"
+				},
+				{
+					"Key" : "Name",
+					"Value" : "salt.agorgtest.net"
+				} ],
+				"UserData" : { 
+					"Fn::Base64" : { 
+						"Fn::Join" : ["", [
+				               	"#!/bin/bash\n",
+                                		"sudo su\n",
+    						
+    						"sed -i 's/#id:/id: SALT-MASTER/g' /etc/salt/minion\n",
+    						
+    						"service salt-master stop\n",
+				                "service salt-minion stop\n",
+    						
+				                "service salt-master start\n",
+				                "service salt-minion start\n"
+						]]
+					}
+				}
+	    		}
+	    	},
+    		"InstanceSecurityGroup" : {
+			"Type" : "AWS::EC2::SecurityGroup",
+			"Properties" : {
+				"VpcId": {
+  					"Ref": "VPCId"
+				},
+				"GroupDescription" : "Enable SSH access via port 22",
+				"SecurityGroupIngress" : [ 
+				{
+    					"IpProtocol": "icmp",
+			            	"FromPort": "-1",
+			            	"ToPort": "-1",
+			            	"CidrIp" : "0.0.0.0/0"
+				},
+				{
+					"IpProtocol": "tcp",
+			            	"FromPort": "22",
+			            	"ToPort": "22",
+			            	"CidrIp" : "0.0.0.0/0"
+				},
+				{
+			            	"IpProtocol": "tcp",
+			            	"FromPort": "80",
+			            	"ToPort": "80",
+			            	"CidrIp" : "0.0.0.0/0"
+				},
+				{
+			            	"IpProtocol": "tcp",
+			            	"FromPort": "443",
+			            	"ToPort": "443",
+			            	"CidrIp" : "0.0.0.0/0"
+				},
+				{
+			            	"IpProtocol": "tcp",
+			            	"FromPort": "4505",
+			            	"ToPort": "4506",
+			            	"CidrIp" : "0.0.0.0/0"
+				},
+				{
+			            	"IpProtocol": "tcp",
+			            	"FromPort": "10000",
+			            	"ToPort": "10000",
+			            	"CidrIp" : "0.0.0.0/0"
+				} ],
+				"Tags": [
+          				{
+            					"Key": "Name",
+            					"Value": "SaltMasterSecurityGroup"
+          				},
+          				{
+            					"Key": "env",
+            					"Value": "test"
+          				}
+        			]
+      			}
+		}
+  	},
+
+  	"Outputs" : {
+    		"InstanceId" : {
+      			"Description" : "InstanceId of the newly created EC2 instance",
+      			"Value" : { "Ref" : "Ec2Instance" }
+    		},
+    		"AZ" : {
+      			"Description" : "Availability Zone of the newly created EC2 instance",
+      			"Value" : { "Fn::GetAtt" : [ "Ec2Instance", "AvailabilityZone" ] }
+    		}
+  	}
+}
