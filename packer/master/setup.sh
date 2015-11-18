@@ -104,7 +104,7 @@ fileserver_backend:
 gitfs_remotes:
   - https://github.com/arashgorg/salt.git:
     - user: arashgorg
-    - password: operations1
+    - password: ?
 
 EOF
 
