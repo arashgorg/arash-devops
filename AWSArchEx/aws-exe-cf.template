@@ -6,7 +6,7 @@
 		"VPCId": {
       			"Description": "VPC",
       			"Type": "String",
-      			"Default": "vpc-7299b717"
+      			"Default": "vpc-1b63497e"
       		},
       		"VPCCidr": {
       			"Description": "CIDR Block for the VPC",
@@ -36,7 +36,7 @@
     		"DefVPCSG": {
       			"Description": "VPC Default Security Group",
       			"Type": "String",
-      			"Default": "sg-90cce8f4"
+      			"Default": "sg-bce1ccd8"
     		}
     	},
 	
@@ -61,12 +61,12 @@
 	          		"AMI" : "ami-f1edb0c1"
 	      		},
 	      		"us-west-2" : {
-	          		"AMI" : "ami-973220f6"
+	          		"AMI" : "ami-943123f5"
 	      		}
 	    	},
     		"PublicSubnetMap": {
       			"us-west-2a": {
-        			"Id": "subnet-f9e7d59c",
+        			"Id": "subnet-c988b4ac",
         			"Prefix": "10.99.1"
       			}
     		}
@@ -94,7 +94,7 @@
                     			"Ebs" : { "VolumeSize" : "1" }
                 		}
 				],
-        			"KeyName" : "admin@newgorg",
+        			"KeyName" : "admin@admingorg3",
         			"ImageId" : { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "AMI" ]},
 				"Tags" : [ {
 					"Key" : "env",

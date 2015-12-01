@@ -36,7 +36,7 @@ else
 fi
 
 
-# aws cloudformation create-stack --capabilities CAPABILITY_IAM --stack-name AWS-EXE-VPC --template-body file://create-aws-exe-vpc.template
+# aws cloudformation create-stack --capabilities CAPABILITY_IAM --stack-name NEW-AWS-EXE-VPC --template-body file://create-aws-exe-vpc.template
 # Elastic IP: 52.26.65.199
 # Root Device: /dev/xvda
 # Volume ID vol: vol-8bfe0c7c
