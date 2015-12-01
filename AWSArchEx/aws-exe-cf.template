@@ -1,0 +1,300 @@
+{
+  	"AWSTemplateFormatVersion" : "2010-09-09",
+  	"Description" : "For the AWS Exercise.  Create an EC2 instance running the Amazon Linux 32 bit AMI. ",
+
+	"Parameters": {
+		"VPCId": {
+      			"Description": "VPC",
+      			"Type": "String",
+      			"Default": "vpc-7299b717"
+      		},
+      		"VPCCidr": {
+      			"Description": "CIDR Block for the VPC",
+      			"Type": "String",
+      			"Default": "10.99.0.0/16"
+    		},
+    		"VPCAZ1": {
+      			"Description": "AvailabilityZone where the first front-end instance will be launched",
+      			"Type": "String",
+      			"Default": "us-west-2a"
+    		},
+    		"PrivateS3Resources": {
+      			"Description": "S3 ARN for private resources",
+      			"Type": "String",
+      			"Default": "arn:aws:s3:::agorg/cf-templates-4cmmx6wny0hn-us-west-2/*"
+   		},
+   		"LogS3Bucket": {
+      			"Description": "S3 ARN for log bucket",
+      			"Type": "String",
+      			"Default": "arn:aws:s3:::agorg"
+    		},
+    		"LogS3Resources": {
+      			"Description": "S3 ARN for log resources",
+      			"Type": "String",
+      			"Default": "arn:aws:s3:::agorg/cf-templates-4cmmx6wny0hn-us-west-2/*"
+    		},
+    		"DefVPCSG": {
+      			"Description": "VPC Default Security Group",
+      			"Type": "String",
+      			"Default": "sg-90cce8f4"
+    		}
+    	},
+	
+  	"Mappings" : {
+    		"RegionMap" : {
+      			"us-east-1" : {
+          			"AMI" : "ami-76f0061f"
+	      		},
+	      		"us-west-1" : {
+	          		"AMI" : "ami-655a0a20"
+	      		},
+	      		"eu-west-1" : {
+	          		"AMI" : "ami-7fd4e10b"
+	      		},
+	      		"ap-southeast-1" : {
+	          		"AMI" : "ami-72621c20"
+	      		},
+	      		"ap-northeast-1" : {
+	          		"AMI" : "ami-8e08a38f"
+	      		},
+	      		"us-west-4" : {
+	          		"AMI" : "ami-f1edb0c1"
+	      		},
+	      		"us-west-2" : {
+	          		"AMI" : "ami-973220f6"
+	      		}
+	    	},
+    		"PublicSubnetMap": {
+      			"us-west-2a": {
+        			"Id": "subnet-f9e7d59c",
+        			"Prefix": "10.99.1"
+      			}
+    		}
+    	},
+
+  	"Resources" : {
+    		"Ec2Instance" : {
+      			"Type" : "AWS::EC2::Instance",
+      			"Properties" : {
+        			"AvailabilityZone" : "us-west-2a",
+        			"InstanceType" : "t2.micro",
+        			"SecurityGroupIds" : [ { "Ref" : "InstanceSecurityGroup" } ],
+        			"SubnetId": {
+          				"Fn::FindInMap": [
+            					"PublicSubnetMap",
+    						{
+      							"Ref": "VPCAZ1"
+    						},
+    						"Id"
+          				]
+        			},
+				"BlockDeviceMappings" : [
+                		{
+                    			"DeviceName" : "/dev/sdf",
+                    			"Ebs" : { "VolumeSize" : "1" }
+                		}
+				],
+        			"KeyName" : "admin@newgorg",
+        			"ImageId" : { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "AMI" ]},
+				"Tags" : [ {
+					"Key" : "env",
+					"Value" : "test"
+				},
+				{
+					"Key" : "type",
+					"Value" : "orig"
+				},
+				{
+					"Key" : "Name",
+					"Value" : "arash.awsec2exercise.net"
+				} ],
+				"UserData" : { 
+					"Fn::Base64" : { 
+						"Fn::Join" : ["", [
+				               	"#!/bin/bash\n",
+                                		"sudo su\n",
+						"chmod +rwx /srv/arash/InitialLaunch.sh\n",
+			                	"bash /srv/arash/InitialLaunch.sh\n"
+						]]
+					}
+				}
+	    		}
+	    	},
+	    	"MyEIP" : {
+ 			"Type" : "AWS::EC2::EIP",
+ 			"Properties" : {
+    				 "InstanceId" : { "Ref" : "Ec2Instance" }
+ 			}
+		},
+		"IPAssoc" : {
+   			"Type" : "AWS::EC2::EIPAssociation",
+   			"Properties" : {
+     				"InstanceId" : { "Ref" : "Ec2Instance" },
+     				"EIP" : { "Ref" : "MyEIP" }
+     			}
+   		},
+    		"InstanceSecurityGroup" : {
+			"Type" : "AWS::EC2::SecurityGroup",
+			"Properties" : {
+				"VpcId": {
+  					"Ref": "VPCId"
+				},
+				"GroupDescription" : "Enable SSH access via port 22",
+				"SecurityGroupIngress" : [ 
+				{
+					"IpProtocol": "tcp",
+			            	"FromPort": "22",
+			            	"ToPort": "22",
+			            	"CidrIp" : "0.0.0.0/0"
+				},
+				{
+			            	"IpProtocol": "tcp",
+			            	"FromPort": "80",
+			            	"ToPort": "80",
+			            	"CidrIp" : "0.0.0.0/0"
+				} ],
+				"SecurityGroupEgress" : [ 
+				{
+					"IpProtocol": "tcp",
+			            	"FromPort": "22",
+			            	"ToPort": "22",
+			            	"CidrIp" : "0.0.0.0/0"
+				},
+				{
+			            	"IpProtocol": "tcp",
+			            	"FromPort": "80",
+			            	"ToPort": "80",
+			            	"CidrIp" : "0.0.0.0/0"
+				} ],
+				"Tags": [
+          				{
+            					"Key": "Name",
+            					"Value": "AWSec2SG"
+          				},
+          				{
+            					"Key": "env",
+            					"Value": "test"
+          				}
+        			]
+      			}
+		},
+		"AWSec2Role": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"AssumeRolePolicyDocument": {
+			  		"Version": "2012-10-17",
+			  		"Statement": [
+			    		{
+			      			"Effect": "Allow",
+			      			"Principal": {
+			        			"Service": [
+			          				"ec2.amazonaws.com"
+			        			]
+			      			},
+			      			"Action": [
+			        			"sts:AssumeRole"
+			      			]
+			    		}
+			  		]
+				},
+				"Path": "/",
+				"Policies": [
+				{
+					"PolicyName": "root",
+				    	"PolicyDocument": {
+				      		"Version": "2012-10-17",
+				      		"Statement": [
+				        	{
+				          		"Effect": "Allow",
+				          		"Action": "s3:GetObject",
+				          		"Resource": {
+				            			"Ref": "PrivateS3Resources"
+				          		}
+				        	},
+				        	{
+				          		"Effect": "Allow",
+				          		"Action": "s3:ListBucket",
+				          		"Resource": {
+				              			"Ref": "LogS3Bucket"
+				          		}
+				        	},
+				        	{
+				          		"Effect": "Allow",
+				          		"Action": "s3:*",
+				          		"Resource": {
+				            			"Ref": "LogS3Resources"
+				          		}
+				        	},
+				        	{
+				          		"Effect": "Allow",
+				          		"Action": [
+				            			"ec2:AssociateAddress",
+				            			"ec2:DescribeAddresses",
+				            			"ec2:DisassociateAddress"
+				          		],
+				          		"Resource": "*"
+				        	},
+				        	{
+				          		"Effect": "Allow",
+				          		"Action": [
+				            			"ec2:AttachNetworkInterface",
+				            			"ec2:DescribeNetworkInterfaces"
+				          		],
+				          		"Resource": "*"
+				        	},
+				        	{
+				          		"Effect": "Allow",
+				          		"Action": [
+				             			"route53:GetChange"
+				          		],
+				          		"Resource": "arn:aws:route53:::change/*"
+				        	},
+				        	{
+      							"Effect": "Allow",
+      							"Action": [
+        							"iam:CreateRole",
+        							"iam:PutRolePolicy"
+     							],
+      							"Resource": "*"
+    						},
+    						{
+					      		"Effect": "Allow",
+					      		"Action": [
+					        		"codedeploy:*"
+					      		],
+					      		"Resource": "*"
+					    	}
+				      		]
+				    	}
+				}
+				]
+			}
+		},
+		"AWSec2RoleInstanceProfile": {
+			"Type": "AWS::IAM::InstanceProfile",
+      			"Properties": {
+        			"Path": "/",
+        			"Roles": [
+          			{
+            				"Ref": "AWSec2Role"
+          			}
+        			]
+      			}
+    		}
+  	},
+
+  	"Outputs" : {
+    		"InstanceId" : {
+      			"Description" : "InstanceId of the newly created EC2 instance",
+      			"Value" : { "Ref" : "Ec2Instance" }
+    		},
+    		"AZ" : {
+      			"Description" : "Availability Zone of the newly created EC2 instance",
+      			"Value" : { "Fn::GetAtt" : [ "Ec2Instance", "AvailabilityZone" ] }
+    		},
+    		"PublicIP" : {
+      			"Description" : "Public IP address of the newly created EC2 instance",
+      			"Value" : { "Fn::GetAtt" : [ "Ec2Instance", "PublicIp" ] }
+    		}
+  	}
+}
